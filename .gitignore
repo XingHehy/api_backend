@@ -1,0 +1,5 @@
+.idea
+config.yaml
+*.mmdb
+logs/
+log/

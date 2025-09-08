@@ -1,0 +1,61 @@
+# config.yaml
+# 数据库配置（根据实际环境修改）
+database:
+  mysql:
+    host: 192.168.1.100
+    port: 3306
+    database: api_prod
+    username: prod_user
+    password: "Prod@Db123!"
+    charset: utf8mb4
+    pool_size: 15
+    max_overflow: 25
+    pool_timeout: 30
+    pool_recycle: 3600
+    echo: false
+
+  redis:
+    host: 192.168.1.101
+    port: 6379
+    db: 2
+    password: "Redis@Pass456!"
+    max_connections: 30
+    socket_timeout: 5
+    socket_connect_timeout: 5
+    retry_on_timeout: true
+    health_check_interval: 30
+
+# 应用配置
+app:
+  name: "API管理系统（生产环境）"
+  version: "1.0.1"
+  debug: false
+  host: "0.0.0.0"
+  port: 8080
+
+  jwt:
+    secret_key: "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6"
+    algorithm: "HS256"
+    access_token_expire_minutes: 1440
+    refresh_token_expire_days: 7
+
+  logging:
+    level: "WARNING"
+    format: "%(asctime)s - %(module)s - %(levelname)s - %(message)s"
+    file: "logs/prod_app.log"
+    max_size: "50MB"
+    backup_count: 10
+
+  cache:
+    default_ttl: 7200
+    max_size: 2000
+
+  security:
+    bcrypt_rounds: 12
+    rate_limit_per_minute: 120
+    cors_origins: ["https://api.yourdomain.com", "https://admin.yourdomain.com"]
+
+  upload:
+    max_file_size: "20MB"
+    allowed_extensions: [".jpg", ".jpeg", ".png", ".pdf", ".xlsx", ".docx"]
+    upload_dir: "/data/uploads"
