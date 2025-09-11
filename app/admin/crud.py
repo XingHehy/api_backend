@@ -118,24 +118,16 @@ class APICRUD:
     @staticmethod
     def create(db: Session, api_data: dict) -> models.API:
         """创建API接口"""
-        import json
-        
-        # 处理JSON字符串字段 - 现在直接存储为TEXT
-        json_fields = ['request_params', 'request_headers', 'code_examples', 'error_codes', 'tags', 'price_config']
-        
+        # 不对这些字段做JSON校验，直接按字符串保存
+        text_fields = [
+            'request_params', 'request_headers', 'code_examples', 'error_codes',
+            'tags', 'price_config', 'response_example', 'request_example'
+        ]
         processed_data = api_data.copy()
-        
-        for field in json_fields:
-            if field in processed_data and processed_data[field]:
-                # 确保是字符串格式
-                if not isinstance(processed_data[field], str):
-                    processed_data[field] = json.dumps(processed_data[field])
-                # 验证JSON格式
-                try:
-                    json.loads(processed_data[field])
-                except (json.JSONDecodeError, TypeError):
-                    # 如果JSON格式无效，设为空字符串
-                    processed_data[field] = ""
+        for field in text_fields:
+            if field in processed_data:
+                value = processed_data[field]
+                processed_data[field] = '' if value is None else str(value)
         
         db_api = models.API(**processed_data)
         db.add(db_api)
@@ -163,29 +155,22 @@ class APICRUD:
     def update(db: Session, api_id: int, api_data: dict) -> Optional[models.API]:
         """更新API接口"""
         import logging
-        import json
         logger = logging.getLogger(__name__)
         
         db_api = db.query(models.API).filter(models.API.id == api_id).first()
         if db_api:
             logger.info(f"更新API {api_id}，更新数据: {api_data}")
             
-            # 处理JSON字符串字段 - 现在直接存储为TEXT
-            json_fields = ['request_params', 'request_headers', 'code_examples', 'error_codes', 'tags', 'price_config']
-            
+            # 不做JSON校验，直接按字符串保存
+            text_fields = [
+                'request_params', 'request_headers', 'code_examples', 'error_codes',
+                'tags', 'price_config', 'response_example', 'request_example'
+            ]
             processed_data = api_data.copy()
-            
-            for field in json_fields:
-                if field in processed_data and processed_data[field]:
-                    # 确保是字符串格式
-                    if not isinstance(processed_data[field], str):
-                        processed_data[field] = json.dumps(processed_data[field])
-                    # 验证JSON格式
-                    try:
-                        json.loads(processed_data[field])
-                    except (json.JSONDecodeError, TypeError):
-                        # 如果JSON格式无效，设为空字符串
-                        processed_data[field] = ""
+            for field in text_fields:
+                if field in processed_data:
+                    value = processed_data[field]
+                    processed_data[field] = '' if value is None else str(value)
             
             for key, value in processed_data.items():
                 if hasattr(db_api, key):

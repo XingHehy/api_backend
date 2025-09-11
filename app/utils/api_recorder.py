@@ -3,6 +3,7 @@
 只记录核心统计信息：API调用次数和用户使用次数
 """
 import logging
+from typing import Optional
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status, Request
 from app.database import get_db
@@ -15,16 +16,17 @@ def verify_and_record_api_call(
     api_id: int,
     request: Request = None,
     api_key: str = None
-) -> admin_models.Subscription:
+) -> Optional[admin_models.Subscription]:
     """
     验证API密钥并记录API调用统计
+    支持免费API（无需API密钥）
     
     Args:
         api_key: API密钥
         api_id: API ID
         
     Returns:
-        Subscription: 验证成功的订阅信息
+        Subscription: 验证成功的订阅信息（免费API返回None）
         
     Raises:
         HTTPException: 验证失败时抛出异常
@@ -32,9 +34,30 @@ def verify_and_record_api_call(
     db = next(get_db())
     
     try:
-        # 提取/验证API密钥
+        # 首先检查API是否为免费API
+        api = db.query(admin_models.API).filter(admin_models.API.id == api_id).first()
+        if not api:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="API接口不存在"
+            )
+        
+        # 检查API是否可用
+        if not api.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="API接口不可用"
+            )
+        
+        # 如果是免费API，直接记录调用并返回
+        if api.is_free:
+            record_free_api_call(api_id, db)
+            return None
+        
+        # 非免费API需要验证密钥
         if api_key is None and request is not None:
             api_key = extract_api_key_from_request(request)
+        
         # 验证API密钥和API状态
         subscription = verify_api_key(api_key, api_id, db)
         
@@ -71,6 +94,13 @@ def extract_api_key_from_request(request: Request) -> str:
         detail="API密钥缺失，请在 query(apiKey) 或 Header(X-API-KEY或Authorization) 中提供",
         headers={"WWW-Authenticate": "ApiKey"}
     )
+
+def try_extract_api_key_from_request(request: Request) -> str:
+    """尝试从请求中提取 API Key，如果没有则返回None（用于免费API）"""
+    try:
+        return extract_api_key_from_request(request)
+    except HTTPException:
+        return None
 
 def record_api_call(
     api_key: str,
@@ -122,6 +152,40 @@ def record_api_call(
         
     except Exception as e:
         logger.error(f"记录API统计失败: {e}")
+        db.rollback()
+        return False
+
+def record_free_api_call(api_id: int, db: Session) -> bool:
+    """
+    记录免费API调用统计
+    
+    Args:
+        api_id: API ID
+        db: 数据库会话
+        
+    Returns:
+        bool: 记录是否成功
+    """
+    try:
+        # 根据api_id查找API信息
+        api = db.query(admin_models.API).filter(
+            admin_models.API.id == api_id
+        ).first()
+        
+        if not api:
+            logger.warning(f"未找到API ID对应的接口: {api_id}")
+            return False
+        
+        # 更新API调用统计
+        api.call_count += 1
+        
+        db.commit()
+        
+        logger.info(f"免费API调用已记录: api_id={api.id}")
+        return True
+        
+    except Exception as e:
+        logger.error(f"记录免费API统计失败: {e}")
         db.rollback()
         return False
 

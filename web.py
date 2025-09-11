@@ -9,6 +9,10 @@ from app.user.api import router as user_router
 from app.index.api import router as index_router
 from apis.bing.api import router as bing_router
 from apis.ip.api import router as ip_router
+from apis.yiyan.api import router as yiyan_router
+from apis.siteinfo.api import router as siteinfo_router
+from apis.tcaptcha.api import router as tcaptcha_router
+from apis.wyy_music.api import router as wyy_music_router
 from app.config import config
 import logging
 import os
@@ -85,6 +89,10 @@ app.include_router(index_router, prefix="/v/index", tags=["首页"])
 # 第三方/对外开放 API 使用 /api/xxx
 app.include_router(bing_router, prefix="/api", tags=["API"])
 app.include_router(ip_router, prefix="/api", tags=["API"])
+app.include_router(yiyan_router, prefix="/api", tags=["API"])
+app.include_router(siteinfo_router, prefix="/api", tags=["API"])
+app.include_router(tcaptcha_router, prefix="/api", tags=["API"])
+app.include_router(wyy_music_router, prefix="/api", tags=["API"])
 
 # 全局异常处理器
 @app.exception_handler(HTTPException)

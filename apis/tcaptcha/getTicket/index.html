@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ticket获取</title>
+    <!-- <script src="https://cdn.clwl.online/app/uin/captcha/captcha.js"></script> -->
+    <script src="captcha.js"></script>
+</head>
+
+<body>
+    <table border="0">
+        <tr>
+            <td>滑块链接</td>
+            <td>
+                <input id="url" placeholder="滑块链接" value="" />
+                <button type="button" onclick="split()">获取</button>
+            </td>
+        </tr>
+        <tr>
+            <td>ticket</td>
+            <td><textarea name="ticket" id="ticket" cols="30" rows="8"></textarea></td>
+        </tr>
+        <tr>
+            <td>randstr</td>
+            <td><textarea name="randstr" id="randstr" cols="30" rows="1"></textarea></td>
+        </tr>
+
+    </table>
+    <script>
+        function split() {
+            let url = document.getElementById("url").value;
+            if (url == "") {
+                alert('滑块链接不能为空');
+                return;
+            }
+            let obj = {};
+            let str = url.split("?")[1].split("&");
+            for (let i = 0; i < str.length; i++) {
+                let a = str[i].split('=')
+                obj[a[0]] = a[1]
+            }
+            /*if(obj['uin']==undefined || obj['sid']==undefined || obj['cap_cd']==undefined){
+                alert('无效URL');
+                return;
+            }*/
+            sinking.setAid(obj['aid']).setData(obj['uin'], obj['sid'], obj['cap_cd']).init(function (t) {
+                document.getElementById("ticket").innerText = t.ticket
+                document.getElementById("randstr").innerText = t.randstr
+                console.log(t)
+            });
+        }
+    </script>
+</body>
+
+</html>

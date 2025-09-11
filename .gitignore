@@ -3,3 +3,5 @@ config.yaml
 *.mmdb
 logs/
 log/
+__pycache__/
+*.pyc

@@ -114,17 +114,24 @@ async def get_users(
 ):
     """获取用户列表（管理员）"""
     try:
-        users = crud.UserCRUD.get_all(db, skip, limit)
-        
-        # 过滤用户
+        # 构建查询并将筛选条件下推到数据库
+        query = db.query(models.User)
         if keyword:
-            users = [u for u in users if keyword.lower() in u.username.lower() or keyword.lower() in u.email.lower()]
+            kw = f"%{keyword}%"
+            query = query.filter(
+                (models.User.username.ilike(kw)) | (models.User.email.ilike(kw))
+            )
         if is_active is not None:
-            users = [u for u in users if u.is_active == is_active]
+            query = query.filter(models.User.is_active == is_active)
         if is_admin is not None:
-            users = [u for u in users if u.is_admin == is_admin]
-        
-        total = len(users)
+            query = query.filter(models.User.is_admin == is_admin)
+
+        # 总数为满足条件的全部用户数
+        total = query.count()
+
+        # 分页取当前页数据
+        users = query.offset(skip).limit(limit).all()
+
         # 批量统计扩展字段（订单数、订阅数、最后登录时间）
         user_ids = [u.id for u in users]
         order_count_map = {}
