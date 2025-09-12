@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>腾讯验证码接入示例</title>
+    <title>腾讯验证码接入示例 - 九天API</title>
     <style>
         body {
             margin: 50px 0;
@@ -76,12 +76,11 @@
         const resultDiv = document.getElementById('result');
 
         if (res.ret === 0) {
-            // 测试JSON接口
             $.ajax({
                 type: "GET",
                 dataType: "json",
                 data: { ticket: res.ticket, randstr: res.randstr },
-                url: "/api/tcaptcha/",  // 使用Python API
+                url: "https://api.lizh.cc/api/tcaptcha/",
                 success: function (data) {
                     resultDiv.className = data.success ? 'result success' : 'result error';
                     resultDiv.innerHTML = `

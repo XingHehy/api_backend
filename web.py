@@ -13,6 +13,7 @@ from apis.yiyan.api import router as yiyan_router
 from apis.siteinfo.api import router as siteinfo_router
 from apis.tcaptcha.api import router as tcaptcha_router
 from apis.wyy_music.api import router as wyy_music_router
+from apis.word.api import router as word_router
 from app.config import config
 import logging
 import os
@@ -93,6 +94,7 @@ app.include_router(yiyan_router, prefix="/api", tags=["API"])
 app.include_router(siteinfo_router, prefix="/api", tags=["API"])
 app.include_router(tcaptcha_router, prefix="/api", tags=["API"])
 app.include_router(wyy_music_router, prefix="/api", tags=["API"])
+app.include_router(word_router, prefix="/api", tags=["API"])
 
 # 全局异常处理器
 @app.exception_handler(HTTPException)
