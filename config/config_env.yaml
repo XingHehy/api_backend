@@ -1,0 +1,69 @@
+# 数据库配置文件
+# 数据库配置
+database:
+  # MySQL配置
+  mysql:
+    host: localhost
+    port: 3306
+    database: api_api
+    username: root
+    password: "123456"
+    charset: utf8mb4
+    pool_size: 10
+    max_overflow: 20
+    pool_timeout: 30
+    pool_recycle: 3600
+    echo: false  # 生产环境设为false
+  
+  # Redis配置
+  redis:
+    host: localhost
+    port: 6379
+    db: 9
+    password: ""  # 如果有密码，请设置
+    max_connections: 20
+    socket_timeout: 5
+    socket_connect_timeout: 5
+    retry_on_timeout: true
+    health_check_interval: 30
+
+# 应用配置
+app:
+  # 基本配置
+  name: "API管理系统"
+  version: "1.0.0"
+  debug: true
+  host: "0.0.0.0"
+  port: 8000
+  
+  # JWT配置
+  jwt:
+    secret_key: "secret-key"
+    algorithm: "HS256"
+    access_token_expire_minutes: 10080  # 7天 = 7 * 24 * 60 = 10080分钟
+    refresh_token_expire_days: 7
+  
+  # 日志配置
+  logging:
+    level: "INFO"
+    format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    file: "logs/app.log"
+    max_size: "10MB"
+    backup_count: 5
+  
+  # 缓存配置
+  cache:
+    default_ttl: 3600  # 默认缓存时间（秒）
+    max_size: 1000     # 最大缓存条目数
+  
+  # 安全配置
+  security:
+    bcrypt_rounds: 12
+    rate_limit_per_minute: 60
+    cors_origins: ["*"]  # 生产环境请限制具体域名
+  
+  # 文件上传配置
+  upload:
+    max_file_size: "10MB"
+    allowed_extensions: [".jpg", ".jpeg", ".png", ".gif", ".pdf", ".doc", ".docx"]
+    upload_dir: "uploads"

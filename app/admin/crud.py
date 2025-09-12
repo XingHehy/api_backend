@@ -228,50 +228,6 @@ class APICRUD:
             "total_calls": total_calls
         }
 
-class APIParameterCRUD:
-    """API参数CRUD操作"""
-    
-    @staticmethod
-    def create(db: Session, parameter_data: dict) -> models.APIParameter:
-        """创建API参数"""
-        db_parameter = models.APIParameter(**parameter_data)
-        db.add(db_parameter)
-        db.commit()
-        db.refresh(db_parameter)
-        return db_parameter
-    
-    @staticmethod
-    def get_by_api_id(db: Session, api_id: int) -> List[models.APIParameter]:
-        """获取API的所有参数"""
-        return db.query(models.APIParameter).filter(
-            models.APIParameter.api_id == api_id
-        ).order_by(models.APIParameter.sort_order).all()
-    
-    @staticmethod
-    def update(db: Session, parameter_id: int, parameter_data: dict) -> Optional[models.APIParameter]:
-        """更新API参数"""
-        db_parameter = db.query(models.APIParameter).filter(
-            models.APIParameter.id == parameter_id
-        ).first()
-        if db_parameter:
-            for key, value in parameter_data.items():
-                if hasattr(db_parameter, key):
-                    setattr(db_parameter, key, value)
-            db.commit()
-            db.refresh(db_parameter)
-        return db_parameter
-    
-    @staticmethod
-    def delete(db: Session, parameter_id: int) -> bool:
-        """删除API参数"""
-        db_parameter = db.query(models.APIParameter).filter(
-            models.APIParameter.id == parameter_id
-        ).first()
-        if db_parameter:
-            db.delete(db_parameter)
-            db.commit()
-            return True
-        return False
 
 
 class OrderCRUD:

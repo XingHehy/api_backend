@@ -187,6 +187,7 @@ class ConfigKeys:
     SYSTEM_REGISTRATION_APPROVAL = "system.registration_approval"
     SYSTEM_DEFAULT_USER_BALANCE = "system.default_user_balance"
     SYSTEM_MAX_API_CALLS_PER_DAY = "system.max_api_calls_per_day"
+    SYSTEM_API_BASE_URL = "system.api_base_url"
     
     # 界面配置
     UI_THEME = "ui.theme"

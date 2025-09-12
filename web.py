@@ -60,8 +60,8 @@ app = FastAPI(
     title=app_config.get('name', 'API管理系统'),
     description="前后端分离的API接口管理系统，支持多种付费模式",
     version=app_config.get('version', '1.0.0'),
-    docs_url="/docs",
-    redoc_url="/redoc",
+    # docs_url="/docs",
+    # redoc_url="/redoc",
     lifespan=lifespan
 )
 
@@ -150,61 +150,6 @@ async def root():
             "Redis缓存支持",
             "前后端分离架构"
         ]
-    }
-
-@app.get("/health")
-async def health_check_endpoint():
-    """健康检查（简化版）"""
-    try:
-        # 简单的健康检查，只检查基本服务状态
-        return {
-            "status": "healthy",
-            "timestamp": datetime.utcnow().isoformat() + "Z",
-            "version": app_config.get('version', '1.0.0'),
-            "message": "服务运行正常",
-            "detailed_status": "/v/admin/system/status"
-        }
-    except Exception as e:
-        logger.error(f"健康检查失败: {e}")
-        return {
-            "status": "unhealthy",
-            "timestamp": datetime.utcnow().isoformat() + "Z",
-            "version": app_config.get('version', '1.0.0'),
-            "error": str(e)
-        }
-
-@app.get("/api")
-async def api_info():
-    """API信息"""
-    return {
-        "name": "API管理系统",
-        "version": app_config.get('version', '1.0.0'),
-        "description": "专业的API接口管理平台",
-        "endpoints": {
-            "admin": {
-                "description": "后台管理接口",
-                "url": "/v/admin",
-                "features": ["用户管理", "API管理", "订单管理", "统计分析"]
-            },
-            "user": {
-                "description": "前台用户接口",
-                "url": "/v/user",
-                "features": ["用户注册登录", "API浏览购买", "订单管理", "订阅管理"]
-            },
-            "index": {
-                "description": "首页和公共接口",
-                "url": "/v/index",
-                "features": ["API搜索", "分类浏览", "推荐API", "统计信息"]
-            },
-            "apis": {
-                "description": "第三方API接口",
-                "url": "/api",
-                "features": ["Bing每日壁纸", "更多API即将推出"]
-            }
-        },
-        "documentation": "/docs",
-        "health_check": "/health",
-        "detailed_system_status": "/v/admin/system/status"
     }
 
 if __name__ == "__main__":

@@ -49,7 +49,7 @@ def fetch_page_content(url: str, max_redirects: int = 5) -> Dict[str, Any]:
             url,
             timeout=30,
             allow_redirects=True,
-            verify=False  # 不验证SSL证书，类似PHP代码
+            verify=False  # 不验证SSL证书
         )
         
         return {

@@ -8,6 +8,8 @@ from app.admin import models as admin_models
 from app.admin import crud as admin_crud
 from . import schemas
 from app.cache import cache_manager
+from app.utils.webconfig_manager import get_config, ConfigKeys
+from apis.tcaptcha.core import check_tencent_captcha
 import logging
 from datetime import datetime, timedelta
 import uuid
@@ -98,6 +100,26 @@ async def register(
                 status_code=400
             )
         
+        # 若开启验证码，先校验
+        auth_captcha = get_config("system.auth_captcha_enabled", "false", str)
+        if str(auth_captcha).lower() == 'true':
+            # 从 body 中获取
+            ticket = getattr(user_data, 'ticket', None) if hasattr(user_data, 'ticket') else None
+            randstr = getattr(user_data, 'randstr', None) if hasattr(user_data, 'randstr') else None
+            if not ticket or not randstr:
+                return schemas.ErrorResponseModel(
+                    message="请完成人机校验",
+                    error_code="CAPTCHA_REQUIRED",
+                    status_code=400
+                )
+            result = check_tencent_captcha(ticket, randstr)
+            if not result.get('success'):
+                return schemas.ErrorResponseModel(
+                    message="人机校验失败",
+                    error_code="CAPTCHA_FAILED",
+                    status_code=400
+                )
+
         # 创建用户
         user_dict = user_data.dict()
         user_dict["password"] = get_password_hash(user_data.password)
@@ -126,6 +148,25 @@ async def login(
 ):
     """用户登录"""
     try:
+        # 若开启验证码，先校验
+        auth_captcha = get_config("system.auth_captcha_enabled", "false", str)
+        if str(auth_captcha).lower() == 'true':
+            ticket = login_data.ticket
+            randstr = login_data.randstr
+            if not ticket or not randstr:
+                return schemas.ErrorResponseModel(
+                    message="请完成人机校验",
+                    error_code="CAPTCHA_REQUIRED",
+                    status_code=400
+                )
+            result = check_tencent_captcha(ticket, randstr)
+            if not result.get('success'):
+                return schemas.ErrorResponseModel(
+                    message="人机校验失败",
+                    error_code="CAPTCHA_FAILED",
+                    status_code=400
+                )
+
         user = authenticate_user(db, login_data.username, login_data.password)
         if not user:
             return schemas.ErrorResponseModel(

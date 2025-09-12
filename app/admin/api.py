@@ -1810,12 +1810,10 @@ async def update_webconfig_by_key(
                 detail="配置值不能为空"
             )
         
+        # 若不存在则创建，实现“设置配置项（不存在则创建）”的语义
         config = crud.WebConfigCRUD.update_by_key(db, key, config_data.v)
         if not config:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="配置项不存在"
-            )
+            config = crud.WebConfigCRUD.set_config(db, key, config_data.v)
         
         # 清除相关缓存
         cache_manager.clear_pattern("webconfig*")
@@ -1826,7 +1824,7 @@ async def update_webconfig_by_key(
                 actor_type="admin",
                 action="update_webconfig_by_key",
                 resource_type="webconfig",
-                description=f"根据键更新网站配置: {key}"
+                description=f"根据键设置网站配置: {key}"
             )
         except Exception:
             pass

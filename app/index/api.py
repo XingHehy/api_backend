@@ -972,14 +972,30 @@ async def get_public_webconfigs(db: Session = Depends(get_db)):
             "ui.theme",
             "system.maintenance_mode",
             "system.maintenance_message",
-            "system.registration_enabled"
+            "system.registration_enabled",
+            "system.api_base_url"
+        ]
+        # 认证相关开关（公开给前端）
+        public_configs += [
+            "system.auth_captcha_enabled",
         ]
         
+        # 针对部分键提供默认值，并且即使未配置也返回（便于前端稳定读取）
+        defaults = {
+            "system.auth_captcha_enabled": "false",
+        }
+
         configs = {}
         for key in public_configs:
-            config = admin_crud.WebConfigCRUD.get_by_key(db, key)
-            if config:
-                configs[key] = config.v
+            default_val = defaults.get(key, None)
+            # 若提供了默认值，则使用 get_config 读取（不存在时返回默认值并包含在输出中）
+            if default_val is not None:
+                value = admin_crud.WebConfigCRUD.get_config(db, key, default_val)
+                configs[key] = value
+            else:
+                config = admin_crud.WebConfigCRUD.get_by_key(db, key)
+                if config:
+                    configs[key] = config.v
         
         return {
             "success": True,

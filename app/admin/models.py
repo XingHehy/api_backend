@@ -101,37 +101,6 @@ class API(Base):
     orders = relationship("Order", back_populates="api")
     subscriptions = relationship("Subscription", back_populates="api")
 
-class APIParameter(Base):
-    """API参数模型"""
-    __tablename__ = "api_parameters"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    api_id = Column(Integer, ForeignKey("apis.id"), nullable=False)
-    
-    # 参数基本信息
-    name = Column(String(100), nullable=False, comment="参数名")
-    required = Column(Boolean, default=False, comment="是否必填")
-    param_type = Column(Enum(ParameterType), nullable=False, comment="参数类型")
-    description = Column(Text, comment="参数说明")
-    
-    # 参数验证规则
-    min_length = Column(Integer, comment="最小长度")
-    max_length = Column(Integer, comment="最大长度")
-    min_value = Column(Float, comment="最小值")
-    max_value = Column(Float, comment="最大值")
-    pattern = Column(String(200), comment="正则表达式")
-    enum_values = Column(JSON, comment="枚举值列表")
-    default_value = Column(Text, comment="默认值")
-    
-    # 参数示例
-    example = Column(Text, comment="参数示例")
-    
-    # 排序
-    sort_order = Column(Integer, default=0, comment="排序顺序")
-    
-    # 关系
-    api = relationship("API")
-
 # APIPricing 模型已删除，价格信息现在直接存储在 API 模型中
 
 class Subscription(Base):
@@ -243,16 +212,7 @@ class APICategory(Base):
     # 与API的关系
     apis = relationship("API", back_populates="category")
 
-class APITag(Base):
-    """API标签模型"""
-    __tablename__ = "api_tags"
     
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(50), unique=True, nullable=False, comment="标签名称")
-    color = Column(String(7), default="#007bff", comment="标签颜色")
-    description = Column(Text, comment="标签描述")
-    usage_count = Column(Integer, default=0, comment="使用次数")
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class WebConfig(Base):
     """网站配置模型"""

@@ -32,6 +32,8 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    ticket: Optional[str] = None
+    randstr: Optional[str] = None
 
 class UserUpdate(BaseModel):
     username: Optional[str] = None
@@ -189,6 +191,8 @@ class TokenData(BaseModel):
 class Login(BaseModel):
     username: str
     password: str
+    ticket: Optional[str] = None
+    randstr: Optional[str] = None
 
 # 响应模式
 class ResponseModel(BaseModel):

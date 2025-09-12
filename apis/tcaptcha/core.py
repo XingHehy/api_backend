@@ -59,7 +59,7 @@ def verify_captcha_ticket(ticket: str, randstr: str) -> int:
         return 0
     
     try:
-        # 构建验证URL（模拟原PHP代码的逻辑）
+        # 构建验证URL
         random_num = random.randint(111111, 999999)
         url = (
             f"https://cgi.urlsec.qq.com/index.php"
@@ -69,7 +69,7 @@ def verify_captcha_ticket(ticket: str, randstr: str) -> int:
             f"&randstr={quote(randstr)}"
         )
         
-        # 设置请求头（模拟原PHP代码）
+        # 设置请求头
         headers = {
             'Accept': 'application/json',
             'Accept-Language': 'zh-CN,zh;q=0.8',

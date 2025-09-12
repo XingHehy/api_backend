@@ -1,3 +1,5 @@
+import logging
+
 import yaml
 import os
 from pathlib import Path
@@ -8,9 +10,11 @@ class Config:
     
     def __init__(self, config_path: str = None):
         if config_path is None:
-            # 默认查找 config/config.yaml
-            config_path = Path(__file__).parent.parent / "config" / "config.yaml"
-        
+            # 默认查找 config/config_env.yaml
+            config_path = Path(__file__).parent.parent / "config" / "config_env.yaml"
+            if not os.path.exists(config_path):
+                config_path = Path(__file__).parent.parent / "config" / "config.yaml"
+        logging.info(f"加载配置文件: {config_path}")
         self.config_path = Path(config_path)
         self._config = self._load_config()
     
