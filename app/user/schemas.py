@@ -70,8 +70,6 @@ class APIBrief(BaseModel):
     category: Optional[str] = None
     tags: Optional[List[str]] = None
     call_count: int
-    success_count: int
-    error_count: int
     created_at: datetime
     
     class Config:
@@ -116,9 +114,6 @@ class APIDetail(BaseModel):
     
     # 统计信息
     call_count: int
-    success_count: int
-    error_count: int
-    success_rate: Optional[float] = None
     
     # 价格选项
     pricing_options: Optional[List[Dict[str, Any]]] = None

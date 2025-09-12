@@ -28,11 +28,11 @@ async def change_password(
 ):
     """修改密码：校验原密码，通过后更新并强制退出当前登录"""
     try:
-        # 校验原密码
+        # 校验原密码（业务失败：返回200 + success=False）
         if not authenticate_user(db, current_user.username, payload.current_password):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="原密码不正确"
+            return schemas.ResponseModel(
+                success=False,
+                message="原密码不正确"
             )
 
         # 更新新密码
@@ -441,8 +441,6 @@ async def get_apis(
                 "category": api.category.name if api.category else None,
                 "tags": api.tags,
                 "call_count": api.call_count,
-                "success_count": api.success_count,
-                "error_count": api.error_count,
                 "created_at": api.created_at
             }
             items.append(api_dict)
@@ -464,7 +462,7 @@ async def get_apis(
             detail="获取API接口列表失败"
         )
 
-@router.get("/apis/{api_id}", response_model=schemas.APIDetail)
+@router.get("/apis/{api_id}", response_model=schemas.ResponseModel)
 async def get_api_detail(
     api_id: int,
     current_user: schemas.User = Depends(get_user_module_access),
@@ -481,10 +479,7 @@ async def get_api_detail(
         ).first()
         
         if not api:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="API接口不存在"
-            )
+            return schemas.ResponseModel(success=False, message="API接口不存在")
         
         # 转换为前台展示格式
         api_detail = {
@@ -500,13 +495,11 @@ async def get_api_detail(
             "category": api.category.name if api.category else None,
             "tags": api.tags,
             "call_count": api.call_count,
-            "success_count": api.success_count,
-            "error_count": api.error_count,
             "created_at": api.created_at,
             "updated_at": api.updated_at
         }
         
-        return schemas.APIDetail(**api_detail)
+        return schemas.ResponseModel(success=True, message="获取成功", data=api_detail)
     except HTTPException:
         # 重新抛出HTTP异常，保持原始状态码
         raise
@@ -536,10 +529,7 @@ async def subscribe_api(
         ).first()
         
         if not api:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="API接口不存在"
-            )
+            return schemas.ResponseModel(success=False, message="API接口不存在")
         
         # 检查是否已经订阅
         existing_subscription = db.query(admin_models.Subscription).filter(
@@ -549,10 +539,7 @@ async def subscribe_api(
         ).first()
         
         if existing_subscription:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="您已经订阅了此API接口"
-            )
+            return schemas.ResponseModel(success=False, message="您已经订阅了此API接口")
         
         # 创建订阅
         subscription_data = {
@@ -601,10 +588,7 @@ async def unsubscribe_api(
         ).first()
         
         if not subscription:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="未找到订阅记录"
-            )
+            return schemas.ResponseModel(success=False, message="未找到订阅记录")
         
         # 取消订阅
         admin_crud.SubscriptionCRUD.update(db, subscription.id, {"status": "cancelled"})
@@ -764,10 +748,7 @@ async def create_order(
         ).first()
         
         if not api:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="API接口不存在"
-            )
+            return schemas.ResponseModel(success=False, message="API接口不存在")
         
         # 创建订单
         order_dict = order_data.dict()
@@ -872,10 +853,7 @@ async def get_order_detail(
         ).first()
         
         if not order:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="订单不存在"
-            )
+            return schemas.ResponseModel(success=False, message="订单不存在")
         
         # 转换为前台展示格式
         api = order.api

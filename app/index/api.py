@@ -373,8 +373,6 @@ async def get_apis_by_category(
                 "category": api.category.name if api.category else None,
                 "tags": api.tags,
                 "call_count": api.call_count,
-                "success_count": api.success_count,
-                "error_count": api.error_count,
                 "created_at": api.created_at
             }
             items.append(api_dict)
@@ -478,8 +476,6 @@ async def get_apis_by_tag(
                 "category": api.category,
                 "tags": api.tags,
                 "call_count": api.call_count,
-                "success_count": api.success_count,
-                "error_count": api.error_count,
                 "created_at": api.created_at
             }
             items.append(api_dict)
@@ -523,10 +519,11 @@ async def get_api_detail(
         ).first()
         
         if not api:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="API不存在"
-            )
+            return {
+                "success": False,
+                "message": "API不存在",
+                "data": {"success": False}
+            }
         
         # 转换为响应格式
         api_dict = {
@@ -602,10 +599,10 @@ async def purchase_api(
         
         # 价格小于0属于配置错误，等于0视为免费但需要订阅
         if price < 0:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="API价格配置错误"
-            )
+            return {
+                "success": False,
+                "message": "API价格配置错误"
+            }
         
         # 使用传入的当前用户
         current_user_id = current_user.id
@@ -617,17 +614,17 @@ async def purchase_api(
         ).first()
         
         if not user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="用户不存在"
-            )
+            return {
+                "success": False,
+                "message": "用户不存在"
+            }
         
         # 检查余额
         if price > 0 and user.balance < price:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"余额不足，当前余额：¥{user.balance}，需要：¥{price}"
-            )
+            return {
+                "success": False,
+                "message": f"余额不足，当前余额：¥{user.balance}，需要：¥{price}"
+            }
         
         # 扣费
         if price > 0:
@@ -818,16 +815,13 @@ async def get_recommendations(
             admin_models.API.is_public == True
         ).order_by(
             admin_models.API.call_count.desc(),
-            admin_models.API.success_count.desc()
+            admin_models.API.created_at.desc()
         ).limit(limit).all()
         
         # 转换为响应格式
         recommendations = []
         for api in apis:
             # 计算成功率
-            success_rate = 0.0
-            if api.call_count > 0:
-                success_rate = (api.success_count / api.call_count) * 100
             
             api_dict = {
                 "id": api.id,
@@ -841,9 +835,6 @@ async def get_recommendations(
                 "category": api.category,
                 "tags": api.tags,
                 "call_count": api.call_count,
-                "success_count": api.success_count,
-                "error_count": api.error_count,
-                "success_rate": round(success_rate, 2),
                 "created_at": api.created_at
             }
             recommendations.append(api_dict)
@@ -920,7 +911,6 @@ async def call_api(
             subscription.remaining_calls -= 1
         
         api.call_count += 1
-        api.success_count += 1
         
         db.commit()
         
@@ -956,6 +946,7 @@ async def get_public_webconfigs(db: Session = Depends(get_db)):
         # 只返回前端需要的公开配置
         public_configs = [
             "site.title",
+            "site.subtitle",
             "site.description", 
             "site.keywords",
             "site.author",
