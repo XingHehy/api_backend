@@ -17,7 +17,9 @@ class UserCRUD:
             if existing_admin:
                 raise ValueError("管理员账户已存在，不能创建新的管理员账户")
         
-        db_user = models.User(**user_data)
+        allowed_fields = set(models.User.__table__.columns.keys())
+        sanitized_data = {k: v for k, v in user_data.items() if k in allowed_fields}
+        db_user = models.User(**sanitized_data)
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
