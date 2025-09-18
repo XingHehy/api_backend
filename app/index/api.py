@@ -8,6 +8,7 @@ from app.admin import models as admin_models
 from app.admin import crud as admin_crud
 from app.cache import cache_manager
 from app.auth import get_current_user
+from app.utils.webconfig_manager import get_config
 import logging
 import json
 
@@ -20,32 +21,41 @@ class PurchaseRequest(BaseModel):
     price_type: str = "monthly"
 
 def calculate_api_price(api, price_type=None):
-    """计算API价格"""
+    """计算API价格（确保返回数值类型，字符串'0'也按0处理）"""
     try:
         if api.is_free:
-            return 0
+            return 0.0
         
         # 解析价格配置
+        price_config = {}
         if api.price_config:
             if isinstance(api.price_config, str):
                 price_config = json.loads(api.price_config)
             else:
                 price_config = api.price_config
-            
-            # 根据价格类型获取价格
-            target_price_type = price_type or (api.price_type.value if api.price_type else "monthly")
-            
-            if target_price_type == "monthly" and "monthly" in price_config:
-                return price_config["monthly"]
-            elif target_price_type == "quarterly" and "quarterly" in price_config:
-                return price_config["quarterly"]
-            elif target_price_type == "yearly" and "yearly" in price_config:
-                return price_config["yearly"]
         
-        return 0
+        def to_number(v):
+            try:
+                # 允许字符串数字，例如 '0'、'9.9'
+                return float(v)
+            except Exception:
+                return 0.0
+        
+        # 根据价格类型获取价格
+        target_price_type = price_type or (api.price_type.value if getattr(api, 'price_type', None) else "monthly")
+        raw_price = 0.0
+        if target_price_type == "monthly" and "monthly" in price_config:
+            raw_price = to_number(price_config.get("monthly", 0))
+        elif target_price_type == "quarterly" and "quarterly" in price_config:
+            raw_price = to_number(price_config.get("quarterly", 0))
+        elif target_price_type == "yearly" and "yearly" in price_config:
+            raw_price = to_number(price_config.get("yearly", 0))
+        else:
+            raw_price = 0.0
+        return max(0.0, raw_price)
     except (json.JSONDecodeError, TypeError, KeyError) as e:
         logger.error(f"计算API价格失败: {e}")
-        return 0
+        return 0.0
 
 def get_api_pricing_options(api):
     """获取API的所有价格选项"""
@@ -593,9 +603,13 @@ async def purchase_api(
         
         # 从请求数据中获取价格类型
         price_type = purchase_data.price_type
+
+        # 使用传入的当前用户
+        current_user_id = current_user.id
         
         # 计算价格
         price = calculate_api_price(api, price_type)
+        logger.info(f"purchase_api: user={current_user_id} api_id={api_id} price_type={price_type} price={price}")
         
         # 价格小于0属于配置错误，等于0视为免费但需要订阅
         if price < 0:
@@ -603,9 +617,6 @@ async def purchase_api(
                 "success": False,
                 "message": "API价格配置错误"
             }
-        
-        # 使用传入的当前用户
-        current_user_id = current_user.id
         
         # 获取用户信息
         user = db.query(admin_models.User).filter(
@@ -749,23 +760,56 @@ async def purchase_api(
         else:
             end_date = start_date + timedelta(days=30)  # 默认月付
         
+        # 若本次订单价格为0（免费），应用“最多续费N个月”的上限（后台配置）
+        # 配置键：system.free_api_max_months（整数，0或未配置表示不限制）
+        is_zero_price = (price == 0)
+        is_free_like = is_zero_price or bool(getattr(api, "is_free", False))
+        try:
+            max_free_months = int(get_config("system.free_api_max_months", 0, int) or 0)
+        except Exception:
+            max_free_months = 0
+        logger.info(f"purchase_api: zero_price={is_zero_price} api_is_free={api.is_free} is_free_like={is_free_like} max_free_months={max_free_months}")
+        
         if existing_subscription:
+            logger.info(f"purchase_api: has existing subscription id={existing_subscription.id} end={existing_subscription.end_date} status={existing_subscription.status}")
+            # 若为免费续费（0元或标记免费）且开启限制，并且当前剩余月数 > N，直接拒绝续费
+            if is_free_like and max_free_months > 0:
+                now_dt = datetime.now()
+                try:
+                    current_end = existing_subscription.end_date
+                except Exception:
+                    current_end = None
+                if existing_subscription.status == "active" and current_end and current_end > now_dt:
+                    # 使用天数上取整，避免同日多次续费的边界绕过
+                    import math
+                    remaining_days = math.ceil((current_end - now_dt).total_seconds() / 86400)
+                    limit_days = 30 * max_free_months
+                    logger.info(f"purchase_api: remaining_days={remaining_days}, limit_days={limit_days} (>= blocks)")
+                    if remaining_days >= limit_days:
+                        logger.warning(f"purchase_api: reject zero-price renew due to remaining over limit")
+                        return {
+                            "success": False,
+                            "message": f"当前剩余天数已达 {remaining_days} 天及以上，请稍后再续费",
+                        }
             # 续费：延长结束时间（从当前结束时间开始延长）
             current_end_date = existing_subscription.end_date
             if current_end_date > datetime.now():
                 # 如果订阅还未过期，从当前结束时间延长
                 if price_type == "monthly":
-                    existing_subscription.end_date = current_end_date + timedelta(days=30)
+                    new_end = current_end_date + timedelta(days=30)
                 elif price_type == "quarterly":
-                    existing_subscription.end_date = current_end_date + timedelta(days=90)
+                    new_end = current_end_date + timedelta(days=90)
                 elif price_type == "yearly":
-                    existing_subscription.end_date = current_end_date + timedelta(days=365)
+                    new_end = current_end_date + timedelta(days=365)
                 else:
-                    existing_subscription.end_date = current_end_date + timedelta(days=30)
+                    new_end = current_end_date + timedelta(days=30)
+                logger.info(f"purchase_api: renew new_end={new_end}")
+                existing_subscription.end_date = new_end
             else:
                 # 如果订阅已过期，从当前时间开始计算
                 existing_subscription.start_date = datetime.now()
                 existing_subscription.end_date = end_date
+                logger.info(f"purchase_api: expired renew end_date={end_date}")
             existing_subscription.updated_at = datetime.now()
         else:
             # 新购：创建新订阅
@@ -773,6 +817,7 @@ async def purchase_api(
                 "user_id": current_user_id,
                 "api_id": api_id,
                 "start_date": start_date,
+                # 免费接口续费上限：新购时同样限制到期日不超过“当前时间 + N个月”
                 "end_date": end_date,
                 "status": "active",
                 "used_calls": 0,
@@ -780,6 +825,7 @@ async def purchase_api(
                 "auto_renew": False
             }
             subscription = admin_crud.SubscriptionCRUD.create(db, subscription_data)
+            logger.info(f"purchase_api: create new subscription id={subscription.id} end={subscription.end_date}")
         
         db.commit()
         
